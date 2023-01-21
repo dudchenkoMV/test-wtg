@@ -25,16 +25,28 @@ Route::get('/login', function() {
     return view('auth.login');
 });
 
-Route::get('/dashboard', function() {
-    return view('admin.dashboard');
-})->middleware('auth')->name('dashboard');
-
-Route::middleware('auth')->group(function() {
-    Route::get('/events', function() {
-       return view('admin.events.index');
-    })->name('events.index');
-});
+//Route::middleware('auth')->group(function() {
+//    Route::get('/events', function() {
+//       return view('admin.events.index');
+//    })->name('events.index');
+//});
 
 Route::post('login', [\App\Http\Controllers\Auth\AuthController::class, 'login'])->name('login');
 
 Route::post('logout',[\App\Http\Controllers\Auth\AuthController::class, 'logout'])->middleware('auth')->name('logout');
+
+
+Route::middleware('auth')->group(function() {
+    Route::get('/dashboard', function() {
+        return view('admin.dashboard');
+    })->name('dashboard');
+
+    Route::get('events', [\App\Http\Controllers\Ajax\EventController::class, 'index'])->name('events.index');
+    Route::get('events/ajax', [\App\Http\Controllers\Ajax\EventController::class, 'ajax'])->name('events.ajax');
+    Route::post('events/store', [\App\Http\Controllers\Ajax\EventController::class, 'store'])->name('events.store');
+    Route::post('events/{event}/update', [\App\Http\Controllers\Ajax\EventController::class, 'update'])->name('events.update');
+    Route::post('events/{event}/destroy', [\App\Http\Controllers\Ajax\EventController::class, 'destroy'])->name('events.destroy');
+});
+
+
+

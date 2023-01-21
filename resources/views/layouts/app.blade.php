@@ -31,7 +31,7 @@
                     // create an Event Object (https://fullcalendar.io/docs/event-object)
                     // it doesn't need to have a start or end
                     var eventObject = {
-                        title: $.trim($(this).text()) // use the element's text as the event title
+                        title: $.trim($(this).text()), // use the element's text as the event title
                     }
 
                     // store the Event Object in the DOM element so we can get to it later
@@ -75,79 +75,99 @@
                         backgroundColor: window.getComputedStyle( eventEl ,null).getPropertyValue('background-color'),
                         borderColor: window.getComputedStyle( eventEl ,null).getPropertyValue('background-color'),
                         textColor: window.getComputedStyle( eventEl ,null).getPropertyValue('color'),
+
                     };
+                }
+            });
+
+            $.ajaxSetup({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 }
             });
 
             var calendar = new Calendar(calendarEl, {
                 headerToolbar: {
-                    left  : 'prev,next today',
-                    center: 'title',
-                    right : 'dayGridMonth,timeGridWeek,timeGridDay'
+                    left  : 'title',
+                    right : 'prev,next today'
                 },
+                locale: 'ua',
+                allDaySlot: false,
+                initialView: 'timeGridWeek',
                 themeSystem: 'bootstrap',
-
-                //Random default events
-                events: [
-                    {
-                        title          : 'All Day Event',
-                        start          : new Date(y, m, 1),
-                        backgroundColor: '#f56954', //red
-                        borderColor    : '#f56954', //red
-                        allDay         : true
-                    },
-                    {
-                        title          : 'Long Event',
-                        start          : new Date(y, m, d - 5),
-                        end            : new Date(y, m, d - 2),
-                        backgroundColor: '#f39c12', //yellow
-                        borderColor    : '#f39c12' //yellow
-                    },
-                    {
-                        title          : 'Meeting',
-                        start          : new Date(y, m, d, 10, 30),
-                        allDay         : false,
-                        backgroundColor: '#0073b7', //Blue
-                        borderColor    : '#0073b7' //Blue
-                    },
-                    {
-                        title          : 'Lunch',
-                        start          : new Date(y, m, d, 12, 0),
-                        end            : new Date(y, m, d, 14, 0),
-                        allDay         : false,
-                        backgroundColor: '#00c0ef', //Info (aqua)
-                        borderColor    : '#00c0ef' //Info (aqua)
-                    },
-                    {
-                        title          : 'Birthday Party',
-                        start          : new Date(y, m, d + 1, 19, 0),
-                        end            : new Date(y, m, d + 1, 22, 30),
-                        allDay         : false,
-                        backgroundColor: '#00a65a', //Success (green)
-                        borderColor    : '#00a65a' //Success (green)
-                    },
-                    {
-                        title          : 'Click for Google',
-                        start          : new Date(y, m, 28),
-                        end            : new Date(y, m, 29),
-                        url            : 'https://www.google.com/',
-                        backgroundColor: '#3c8dbc', //Primary (light-blue)
-                        borderColor    : '#3c8dbc' //Primary (light-blue)
-                    }
-                ],
+                events: 'events/ajax',
                 editable  : true,
-                droppable : true, // this allows things to be dropped onto the calendar !!!
-                drop      : function(info) {
-                    // is the "remove after drop" checkbox checked?
-                    if (checkbox.checked) {
-                        // if so, remove the element from the "Draggable Events" list
-                        info.draggedEl.parentNode.removeChild(info.draggedEl);
-                    }
+                eventDrop: function (info) {
+                    var event = info.event;
+                    var start = moment(event.start).format('YYYY-MM-DD HH:mm:ss');
+                    var end = moment(event.end).format('YYYY-MM-DD HH:mm:ss')
+                    $.ajax({
+                        url: 'events/' + event.id + '/update',
+                        type: "POST",
+                        data: {
+                            id: event.id,
+                            title: event.title,
+                            start_at: start,
+                            end_at: end,
+                        },
+                        success: function (response) {
+
+                        }
+                    });
+                },
+                eventResize: function (info) {
+                    var event = info.event;
+                    var start = moment(event.start).format('YYYY-MM-DD HH:mm:ss');
+                    var end = moment(event.end).format('YYYY-MM-DD HH:mm:ss')
+                    $.ajax({
+                        url: 'events/' + event.id + '/update',
+                        type: "POST",
+                        data: {
+                            id: event.id,
+                            title: event.title,
+                            start_at: start,
+                            end_at: end,
+                        },
+                        success: function (response) {
+
+                        }
+                    });
+                },
+                eventReceive: function (info) {
+                    var event = info.event;
+                    var start = moment(event.start).format('YYYY-MM-DD HH:mm:ss');
+                    var end = moment(event.start).add(1, 'hours').format('YYYY-MM-DD HH:mm:ss');
+                    $.ajax({
+                        url: 'events/store',
+                        type: "POST",
+                        data: {
+                            title: event.title,
+                            start_at: start,
+                            end_at: end,
+                        },
+                        success: function (response) {
+                            event.remove();
+                            calendar.refetchEvents();
+                        }
+                    });
+                },
+                eventClick: function (info) {
+                    var event = info.event;
+                    $.ajax({
+                        url: 'events/' + event.id + '/destroy',
+                        type: "POST",
+                        data: {
+                            id: event.id,
+                        },
+                        success: function (response) {
+                            event.remove();
+                        }
+                    });
                 }
+
             });
 
             calendar.render();
-            // $('#calendar').fullCalendar()
 
             /* ADDING EVENTS */
             var currColor = '#3c8dbc' //Red by default
